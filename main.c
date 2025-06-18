@@ -62,7 +62,7 @@ float dolar_a_euro(float cant, float tasa_dolar, float tasa_euro){
 }
 
 void mostrar(struct Producto zapato, float tasa_bcv, float tasa_euro, float tasa_cop){
-	printf("[%s] %s (%s):\n", zapato.codigo, zapato.nombre, zapato.categoria);
+	printf("%s - %s (%s):\n", zapato.codigo, zapato.nombre, zapato.categoria);
 	// [0101203] Zapato PRUEBA (De vestir)
 	printf("\t%s\n", zapato.descripcion);
 	// 	El zapato que necesitas para lorem ipsum dolor sit anem concepteur adipsit elit.
@@ -106,6 +106,7 @@ int main() {
         	scanf("%f", &zapato.precio_compra);
         	printf("Ingrese el precio venta>>");
         	scanf("%f", &zapato.precio_venta);
+        	printf("\n\n");
         	
         	mostrar(zapato, tasa_bcv, tasa_euro, tasa_cop);
 		}
