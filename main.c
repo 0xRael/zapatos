@@ -111,4 +111,5 @@ int main() {
         	mostrar(zapato, tasa_bcv, tasa_euro, tasa_cop);
 		}
     } while (n != 0);
+// prueba
 }
