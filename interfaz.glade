@@ -166,6 +166,7 @@
             <property name="can-focus">False</property>
             <child>
               <object class="GtkBox" id="page_inventario">
+                <property name="name">page_inventario</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
@@ -259,10 +260,12 @@
               <packing>
                 <property name="name">page0</property>
                 <property name="title" translatable="yes">page0</property>
+                <property name="icon-name">page_inventario</property>
               </packing>
             </child>
             <child>
               <object class="GtkBox" id="page_prueba">
+                <property name="name">page_prueba</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
@@ -285,6 +288,7 @@
               <packing>
                 <property name="name">page1</property>
                 <property name="title" translatable="yes">page1</property>
+                <property name="icon-name">page_prueba</property>
                 <property name="position">1</property>
               </packing>
             </child>
