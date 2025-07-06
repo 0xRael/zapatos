@@ -2,6 +2,20 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <object class="GtkTreeStore" id="inventarioStore">
+    <columns>
+      <!-- column-name ID -->
+      <column type="gint"/>
+      <!-- column-name Nombre -->
+      <column type="gchar"/>
+      <!-- column-name Desc -->
+      <column type="gchar"/>
+      <!-- column-name Categoria -->
+      <column type="gchar"/>
+      <!-- column-name Cantidad -->
+      <column type="gint"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="ventana">
     <property name="can-focus">False</property>
     <property name="default-width">1024</property>
@@ -51,6 +65,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <signal name="clicked" handler="on_btnInventario_clicked" object="stack_main" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -67,6 +82,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
+                    <signal name="clicked" handler="on_btnProductos_clicked" object="stack_main" swapped="no"/>
                   </object>
                 </child>
               </object>
@@ -145,11 +161,11 @@
           </packing>
         </child>
         <child>
-          <object class="GtkStack">
+          <object class="GtkStack" id="stack_main">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
-              <object class="GtkBox">
+              <object class="GtkBox" id="page_inventario">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
@@ -217,15 +233,24 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkTreeView" id="inventario">
+                  <object class="GtkScrolledWindow">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
-                    <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
+                    <property name="shadow-type">in</property>
+                    <child>
+                      <object class="GtkTreeView" id="inventario">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="model">inventarioStore</property>
+                        <property name="search-column">0</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection"/>
+                        </child>
+                      </object>
                     </child>
                   </object>
                   <packing>
-                    <property name="expand">False</property>
+                    <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
@@ -234,6 +259,33 @@
               <packing>
                 <property name="name">page0</property>
                 <property name="title" translatable="yes">page0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox" id="page_prueba">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">PRUEBA XDXDXDXD</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="name">page1</property>
+                <property name="title" translatable="yes">page1</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
