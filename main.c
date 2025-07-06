@@ -1,6 +1,13 @@
-﻿#include <gtk/gtk.h>
+﻿#include <string.h>
+#include <strings.h>
+#include <stdlib.h>
+#include <gtk/gtk.h>
+#include <glib.h>
 
-static GtkBuilder *builder = NULL;
+
+/*
+  DEFINICIONES
+*/
 
 typedef struct {
 	char codigo[50];
@@ -42,10 +49,45 @@ typedef struct {
 	int numero;
 } Trabajador;
 
+
+static GtkBuilder *builder = NULL;
+
+// Inventario en memoria
+static Producto inventario[] = {
+    {"000", "Jordan Plus asd", "Los zapatos mas epicos w", "Deportivo", 10},
+    {"0123", "VIva chavez", "Chavez vive el hambre sigue", "Deportivo",  5},
+    {"8585", "OBS Studio Mod Apk", "Descarga ahora OBS Studio crackeado gratis", "Casual",    8},
+};
+static int n_inventario = 3;
+
 /* Prototipo del callback para cerrar la ventana */
 static void on_main_window_destroy(GtkWidget *widget, gpointer data) {
     gtk_main_quit();
 }
+
+/* Prototipos de funcion */
+G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_data);
+G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_data);
+
+void init_inventario();
+void refresh_inventario(const char *filtro);
+G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data);
+G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_data);
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+FUNCIONES DE LA BARRA LATERAL
+*/
 
 G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_data)
 {
@@ -71,6 +113,21 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
     gtk_stack_set_visible_child(stack, page);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+/*
+FUNCIONES DEL INVENTARIO
+*/
+
 enum {
     COL_CODIGO,
     COL_NOMBRE,
@@ -80,30 +137,31 @@ enum {
     N_COLUMNS
 };
 
-void init_inventario(int n, Producto inventario[]) {
+void init_inventario()
+{
     GtkTreeIter   iter;
 
     /* 1. Obtener TreeView y modelo */
     GtkListStore *store = gtk_list_store_new(
-    N_COLUMNS,
-    G_TYPE_STRING,  /* codigo */
-    G_TYPE_STRING,  /* nombre */
-    G_TYPE_STRING,  /* descripcion */
-    G_TYPE_STRING,  /* categoria */
-    G_TYPE_INT      /* cantidad */
-);
-
-GtkTreeView *tree = GTK_TREE_VIEW(
-    gtk_builder_get_object(builder, "tree_inventario")
-);
-gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
-g_object_unref(store);
+	    N_COLUMNS,
+	    G_TYPE_STRING,  /* codigo */
+	    G_TYPE_STRING,  /* nombre */
+	    G_TYPE_STRING,  /* descripcion */
+	    G_TYPE_STRING,  /* categoria */
+	    G_TYPE_INT      /* cantidad */
+	);
+	
+	GtkTreeView *tree = GTK_TREE_VIEW(
+	    gtk_builder_get_object(builder, "tree_inventario")
+	);
+	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
+	g_object_unref(store);
 
     /* 2. Limpiar datos previos */
     gtk_list_store_clear(store);
 
     /* 4. Población */
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n_inventario; i++) {
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(
             store, &iter,
@@ -125,17 +183,100 @@ g_object_unref(store);
 
 }
 
+void refresh_inventario(const char *filtro) {
+    GtkTreeView  *tree  = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_inventario"));
+    GtkListStore *store = GTK_LIST_STORE(
+        gtk_tree_view_get_model(tree));
+    GtkTreeIter   iter;
+
+    /* Limpia filas previas */
+    gtk_list_store_clear(store);
+
+    /* Recorrer el inventario y añadir las filas que pasen el filtro */
+    for (gint i = 0; i < n_inventario; i++) {
+        /* Si hay filtro, comprobamos si aparece en código o nombre */
+        if (filtro && *filtro) {
+        	// Pasamos ambos a minusculas durante la busqueda por nombre para q las mayusculas no sean relevantes
+            gchar *nombre = g_ascii_strdown(inventario[i].nombre, -1);
+			gchar *filtro_minus = g_ascii_strdown(filtro,   -1);
+			
+            if (!strstr(nombre, filtro_minus) &&
+                !strstr(inventario[i].codigo, filtro))
+                continue;
+        }
+
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(
+            store, &iter,
+            COL_CODIGO,      inventario[i].codigo,
+            COL_NOMBRE,      inventario[i].nombre,
+            COL_DESCRIPCION, inventario[i].descripcion,
+            COL_CATEGORIA,   inventario[i].categoria,
+            COL_CANTIDAD,    inventario[i].cantidad,
+            -1
+        );
+    }
+}
+
+G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
+{
+    GtkTreeView      *tree    = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_inventario"));
+    GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
+    GtkTreeIter       iter;
+    GtkTreeModel     *model;
+
+    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return;
+
+    /* Obtener código y buscar índice */
+    gchar *cod;
+    gtk_tree_model_get(model, &iter, COL_CODIGO, &cod, -1);
+    gint idx = -1;
+    for (gint i = 0; i < n_inventario; i++) {
+        if (strcmp(inventario[i].codigo, cod) == 0) { idx = i; break; }
+    }
+    g_free(cod);
+    if (idx < 0) return;
+
+    /* Mover a la izquierda el arreglo */
+    for (gint i = idx; i < n_inventario - 1; i++) {
+        inventario[i] = inventario[i + 1];
+    }
+    n_inventario--;
+
+    /* Refrescar la vista */
+    refresh_inventario(NULL);
+}
+
+G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_data)
+{
+    const char *texto   = gtk_entry_get_text(GTK_ENTRY(
+        gtk_builder_get_object(builder, "invFiltro")));
+
+    /* Simplemente repuebla usando el texto como filtro */
+    refresh_inventario( texto);
+}
+
+
+
+
+
+
+
+
+
+
+
+/*
+ CARGADO DEL ARCHIVO GLADE
+*/
+
+
+
 int main(int argc, char *argv[]) {
-    //GtkBuilder *builder;
     GtkWidget  *window;
     GError     *error = NULL;
-
-    Producto inventario[] = {
-        {"000", "Jordan Plus asd", "Los zapatos mas epicos w", "Deportivo", 10},
-        {"0123", "VIva chavez", "Chavez vive el hambre sigue", "Deportivo",  5},
-        {"8585", "OBS Studio Mod Apk", "Descarga ahora OBS Studio crackeado gratis", "Casual",    8},
-    };
-    int n = 3;
 
     /* Inicializar GTK */
     gtk_init(&argc, &argv);
@@ -150,17 +291,10 @@ int main(int argc, char *argv[]) {
 
     /* Obtener la ventana principal por su ID definido en Glade */
     window = GTK_WIDGET(gtk_builder_get_object(builder, "ventana"));
-    if (!window) {
-        g_printerr("No se encontró widget 'ventana' en el archivo .glade\n");
-        return 1;
-    }
 
     /* Conectar señales definidas en Glade con nuestros callbacks */
     gtk_builder_connect_signals(builder, NULL);
-    init_inventario(n, inventario);
-
-    /* Ya no necesitamos el builder */
-    //g_object_unref(builder);
+    init_inventario();
 
     /* Mostrar la ventana y todos sus hijos */
     gtk_widget_show_all(window);
