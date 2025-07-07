@@ -9,6 +9,8 @@
   DEFINICIONES
 */
 
+#define MAX_PRODUCTOS 100
+
 typedef struct {
 	char codigo[50];
 	char nombre[50];
@@ -53,7 +55,7 @@ typedef struct {
 static GtkBuilder *builder = NULL;
 
 // Inventario en memoria
-static Producto inventario[] = {
+static Producto inventario[MAX_PRODUCTOS] = {
     {"000", "Jordan Plus asd", "Los zapatos mas epicos w", "Deportivo", 10},
     {"0123", "VIva chavez", "Chavez vive el hambre sigue", "Deportivo",  5},
     {"8585", "OBS Studio Mod Apk", "Descarga ahora OBS Studio crackeado gratis", "Casual",    8},
@@ -72,6 +74,8 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
 void init_inventario();
 void refresh_inventario(const char *filtro);
 G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data);
+G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data);
+G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data);
 G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_data);
 
 
@@ -134,6 +138,9 @@ enum {
     COL_DESCRIPCION,
     COL_CATEGORIA,
     COL_CANTIDAD,
+    COL_STOCK,
+    COL_COMPRA,
+    COL_VENTA,
     N_COLUMNS
 };
 
@@ -148,7 +155,10 @@ void init_inventario()
 	    G_TYPE_STRING,  /* nombre */
 	    G_TYPE_STRING,  /* descripcion */
 	    G_TYPE_STRING,  /* categoria */
-	    G_TYPE_INT      /* cantidad */
+	    G_TYPE_INT,     /* cantidad */
+	    G_TYPE_INT,     /* stock minimo */
+	    G_TYPE_FLOAT,   /* precio compra */
+	    G_TYPE_FLOAT    /* precio venta */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -160,26 +170,22 @@ void init_inventario()
     /* 2. Limpiar datos previos */
     gtk_list_store_clear(store);
 
-    /* 4. Población */
+    /* 3. Población */
     for (int i = 0; i < n_inventario; i++) {
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(
             store, &iter,
-            0,     inventario[i].codigo,
-            1, inventario[i].nombre,
+            0,  inventario[i].codigo,
+            1,  inventario[i].nombre,
             2,  inventario[i].descripcion,
             3,  inventario[i].categoria,
             4,  inventario[i].cantidad,
+            5,  inventario[i].stock_minimo,
+            6,  inventario[i].precio_compra,
+            7,  inventario[i].precio_venta,
             -1
         );
     }
-
-    gint count = 0;
-    GtkTreeModel *model = GTK_TREE_MODEL(store);
-    if (gtk_tree_model_get_iter_first(model, &iter)) {
-        do { count++; } while (gtk_tree_model_iter_next(model, &iter));
-    }
-    g_print(">> Filas en inventario: %d\n", count);
 
 }
 
@@ -209,34 +215,43 @@ void refresh_inventario(const char *filtro) {
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(
             store, &iter,
-            COL_CODIGO,      inventario[i].codigo,
-            COL_NOMBRE,      inventario[i].nombre,
-            COL_DESCRIPCION, inventario[i].descripcion,
-            COL_CATEGORIA,   inventario[i].categoria,
-            COL_CANTIDAD,    inventario[i].cantidad,
+            0, inventario[i].codigo,
+            1, inventario[i].nombre,
+            2, inventario[i].descripcion,
+            3, inventario[i].categoria,
+            4, inventario[i].cantidad,
+            5, inventario[i].stock_minimo,
+            6, inventario[i].precio_compra,
+            7, inventario[i].precio_venta,
             -1
         );
     }
 }
 
-G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
+int obtener_seleccion()
 {
-    GtkTreeView      *tree    = GTK_TREE_VIEW(
+	GtkTreeView      *tree    = GTK_TREE_VIEW(
         gtk_builder_get_object(builder, "tree_inventario"));
     GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
     GtkTreeIter       iter;
     GtkTreeModel     *model;
 
-    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return;
+    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return -1;
 
     /* Obtener código y buscar índice */
     gchar *cod;
     gtk_tree_model_get(model, &iter, COL_CODIGO, &cod, -1);
-    gint idx = -1;
-    for (gint i = 0; i < n_inventario; i++) {
+    int idx = -1;
+    for (int i = 0; i < n_inventario; i++) {
         if (strcmp(inventario[i].codigo, cod) == 0) { idx = i; break; }
     }
     g_free(cod);
+    return idx;
+}
+
+G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion();
     if (idx < 0) return;
 
     /* Mover a la izquierda el arreglo */
@@ -249,13 +264,132 @@ G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
     refresh_inventario(NULL);
 }
 
+G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
+{
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dialog_inv_agregar")
+    );
+    
+    // vaciar los espacios previamente
+    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCodigo")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggNombre")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggDesc")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCategoria")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  "");
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
+        /* Leer campos */
+        const char *cod  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCodigo")));
+        const char *nom  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggNombre")));
+        const char *desc  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggDesc")));
+        const char *cat  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCategoria")));
+        const char *cant = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")));
+        const char *min = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")));
+        const char *compra = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
+        const char *venta = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+
+        /* Añadir al arreglo */
+        Producto *p = &inventario[n_inventario++];
+        strncpy(p->codigo,      cod,  sizeof(p->codigo)-1);
+        strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
+        strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
+        strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        
+        p->cantidad = atoi(cant);
+        p->stock_minimo = atoi(min);
+        p->precio_compra = atof(compra);
+        p->precio_venta = atof(venta);
+
+		p->entradas = 0;
+		p->salidas = 0;
+
+        /* Refrescar la vista */
+        refresh_inventario(NULL);
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion();
+    if (idx < 0) return;
+    
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dialog_inv_agregar")
+    );
+    // vaciar los espacios previamente
+    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCodigo")),  inventario[idx].codigo);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggNombre")),  inventario[idx].nombre);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggDesc")),  inventario[idx].descripcion);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCategoria")),  inventario[idx].categoria);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")),  g_strdup_printf("%d", inventario[idx].cantidad));
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  g_strdup_printf("%d", inventario[idx].stock_minimo));
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  g_strdup_printf("%f", inventario[idx].precio_venta));
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  g_strdup_printf("%f", inventario[idx].precio_compra));
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
+        /* Leer campos */
+        const char *cod  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCodigo")));
+        const char *nom  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggNombre")));
+        const char *desc  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggDesc")));
+        const char *cat  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCategoria")));
+        const char *cant = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")));
+        const char *min = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")));
+        const char *compra = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
+        const char *venta = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+
+        /* Añadir al arreglo */
+        Producto *p = &inventario[idx];
+        strncpy(p->codigo,      cod,  sizeof(p->codigo)-1);
+        strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
+        strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
+        strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        
+        p->cantidad = atoi(cant);
+        p->stock_minimo = atoi(min);
+        p->precio_compra = atof(compra);
+        p->precio_venta = atof(venta);
+
+		p->entradas = 0;
+		p->salidas = 0;
+
+        /* Refrescar la vista */
+        refresh_inventario(NULL);
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+
 G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_data)
 {
     const char *texto   = gtk_entry_get_text(GTK_ENTRY(
         gtk_builder_get_object(builder, "invFiltro")));
 
     /* Simplemente repuebla usando el texto como filtro */
-    refresh_inventario( texto);
+    refresh_inventario(texto);
 }
 
 
