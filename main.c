@@ -9,8 +9,6 @@
   DEFINICIONES
 */
 
-#define MAX_PRODUCTOS 100
-
 typedef struct {
 	char codigo[50];
 	char nombre[50];
@@ -35,11 +33,11 @@ typedef struct {
 } Producto;
 
 typedef struct {
+	char cedula[50];
 	char nombre[50];
 	char apellido[50];
 	char telefono[50];
-	char direccion[50];
-	char cedula[50];
+	char direccion[200];
 } Cliente;
 
 typedef struct {
@@ -68,13 +66,7 @@ typedef struct {
 
 static GtkBuilder *builder = NULL;
 
-// Inventario en memoria
-static Producto inventario[MAX_PRODUCTOS] = {
-    {"000", "Jordan Plus asd", "Los zapatos mas epicos w", "Deportivo", 10},
-    {"0123", "VIva chavez", "Chavez vive el hambre sigue", "Deportivo",  5},
-    {"8585", "OBS Studio Mod Apk", "Descarga ahora OBS Studio crackeado gratis", "Casual",    8},
-};
-static int n_inventario = 3;
+static char nombre_tienda[50];
 
 /* Prototipo del callback para cerrar la ventana */
 G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_data) {
@@ -82,10 +74,14 @@ G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_dat
 }
 
 /* Prototipos de funcion */
+void preguntarNombre();
+
+// Barra lateral
 G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_data);
 G_MODULE_EXPORT void on_btnFacturas_clicked(GtkButton *button, gpointer user_data);
 G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_data);
 
+// Inventario
 void init_inventario();
 void refresh_inventario(const char *filtro);
 G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data);
@@ -104,6 +100,24 @@ G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_d
 
 
 
+void preguntarNombre()
+{
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dialog_nombre_tienda")
+    );
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK) {
+        /* Leer campos */
+        const char *nom  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "nombreTienda")));
+
+        strncpy(nombre_tienda, nom, sizeof(nombre_tienda)-1);
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+
 /*
 FUNCIONES DE LA BARRA LATERAL
 */
@@ -114,6 +128,18 @@ G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_d
     // Recupera el widget hijo por su ID de Glade
     GtkWidget *page = GTK_WIDGET(
         gtk_builder_get_object(builder, "page_inventario") 
+    );
+
+    // Muestra esa página
+    gtk_stack_set_visible_child(stack, page);
+}
+
+G_MODULE_EXPORT void on_btnCliente_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkStack *stack = GTK_STACK(user_data);
+    // Recupera el widget hijo por su ID de Glade
+    GtkWidget *page = GTK_WIDGET(
+        gtk_builder_get_object(builder, "page_clientes") 
     );
 
     // Muestra esa página
@@ -158,6 +184,12 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
 /*
 FUNCIONES DEL INVENTARIO
 */
+
+#define MAX_PRODUCTOS 100
+
+// Inventario en memoria
+static Producto inventario[MAX_PRODUCTOS] = {};
+static int n_inventario = 0;
 
 enum {
     COL_CODIGO,
@@ -428,6 +460,247 @@ G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_d
 
 
 
+/*
+FUNCIONES DE CLIENTES
+*/
+
+#define MAX_CLIENTES 100
+
+// Inventario en memoria
+static Cliente clientes[MAX_CLIENTES] = {};
+static int n_clientes = 0;
+
+enum {
+    COL_CEDULA,
+    COL_CNOMBRE,
+    COL_APELLIDO,
+    COL_TELEFONO,
+    COL_DIRECCION,
+    N_COLUMNS_CLI
+};
+
+void init_clientes()
+{
+    GtkTreeIter   iter;
+
+    /* 1. Obtener TreeView y modelo */
+    GtkListStore *store = gtk_list_store_new(
+	    N_COLUMNS_CLI,
+	    G_TYPE_STRING,  /* cedula */
+	    G_TYPE_STRING,  /* nombre */
+	    G_TYPE_STRING,  /* apellido */
+	    G_TYPE_STRING,  /* telefono */
+	    G_TYPE_STRING  /* direccion */
+	);
+	
+	GtkTreeView *tree = GTK_TREE_VIEW(
+	    gtk_builder_get_object(builder, "tree_clientes")
+	);
+	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
+	g_object_unref(store);
+
+    /* 2. Limpiar datos previos */
+    gtk_list_store_clear(store);
+
+    /* 3. Población */
+    for (int i = 0; i < n_clientes; i++) {
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(
+            store, &iter,
+            0,  clientes[i].cedula,
+            1,  clientes[i].nombre,
+            2,  clientes[i].apellido,
+            3,  clientes[i].telefono,
+            4,  clientes[i].direccion,
+            -1
+        );
+    }
+
+}
+
+void refresh_clientes(const char *filtro) {
+    GtkTreeView  *tree  = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_clientes"));
+    GtkListStore *store = GTK_LIST_STORE(
+        gtk_tree_view_get_model(tree));
+    GtkTreeIter   iter;
+
+    /* Limpia filas previas */
+    gtk_list_store_clear(store);
+
+    /* Recorrer el inventario y añadir las filas que pasen el filtro */
+    for (gint i = 0; i < n_clientes; i++) {
+        /* Si hay filtro, comprobamos si aparece en código o nombre */
+        if (filtro && *filtro) {
+        	// Pasamos ambos a minusculas durante la busqueda por nombre para q las mayusculas no sean relevantes
+            gchar *nombre = g_ascii_strdown(clientes[i].nombre, -1);
+            gchar *apellido = g_ascii_strdown(clientes[i].apellido, -1);
+			gchar *filtro_minus = g_ascii_strdown(filtro,   -1);
+			
+            if (!strstr(nombre, filtro_minus) &&
+            	!strstr(apellido, filtro_minus) &&
+                !strstr(inventario[i].codigo, filtro))
+                continue;
+        }
+
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(
+            store, &iter,
+            0,  clientes[i].cedula,
+            1,  clientes[i].nombre,
+            2,  clientes[i].apellido,
+            3,  clientes[i].telefono,
+            4,  clientes[i].direccion,
+            -1
+        );
+    }
+}
+
+int obtener_seleccion_cli()
+{
+	GtkTreeView      *tree    = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_clientes"));
+    GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
+    GtkTreeIter       iter;
+    GtkTreeModel     *model;
+
+    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return -1;
+
+    /* Obtener cedula y buscar índice */
+    gchar *ci;
+    gtk_tree_model_get(model, &iter, COL_CEDULA, &ci, -1);
+    int idx = -1;
+    for (int i = 0; i < n_clientes; i++) {
+        if (strcmp(clientes[i].cedula, ci) == 0) { idx = i; break; }
+    }
+    g_free(ci);
+    return idx;
+}
+
+G_MODULE_EXPORT void on_cliEliminar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion_cli();
+    if (idx < 0) return;
+
+    /* Mover a la izquierda el arreglo */
+    for (gint i = idx; i < n_clientes - 1; i++) {
+        clientes[i] = clientes[i + 1];
+    }
+    n_clientes--;
+
+    /* Refrescar la vista */
+    refresh_clientes(NULL);
+}
+
+G_MODULE_EXPORT void on_cliAgregar_clicked(GtkButton *btn, gpointer user_data)
+{
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dialog_cli_agregar")
+    );
+    
+    // vaciar los espacios previamente
+    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  "");
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK) {
+        /* Leer campos */
+        const char *ci  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")));
+        const char *nom  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")));
+        const char *apel  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")));
+        const char *tel  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")));
+        const char *dir = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")));
+
+        /* Añadir al arreglo */
+        Cliente *p = &clientes[n_clientes++];
+        strncpy(p->cedula,      ci,  sizeof(p->cedula)-1);
+        strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
+        strncpy(p->apellido,   apel,  sizeof(p->apellido)-1);
+        strncpy(p->telefono,    tel,  sizeof(p->telefono)-1);
+        strncpy(p->direccion,   dir,  sizeof(p->direccion)-1);
+
+        /* Refrescar la vista */
+        refresh_clientes(NULL);
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+G_MODULE_EXPORT void on_cliEditar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion_cli();
+    if (idx < 0) return;
+    
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dialog_cli_agregar")
+    );
+    // vaciar los espacios previamente
+    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  clientes[idx].cedula);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  clientes[idx].nombre);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  clientes[idx].apellido);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  clientes[idx].telefono);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  clientes[idx].direccion);
+    
+       gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK) {
+        /* Leer campos */
+        const char *ci  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")));
+        const char *nom  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")));
+        const char *apel  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")));
+        const char *tel  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")));
+        const char *dir = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")));
+
+        /* Añadir al arreglo */
+        Cliente *p = &clientes[idx];
+        strncpy(p->cedula,      ci,  sizeof(p->cedula)-1);
+        strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
+        strncpy(p->apellido,   apel,  sizeof(p->apellido)-1);
+        strncpy(p->telefono,    tel,  sizeof(p->telefono)-1);
+        strncpy(p->direccion,   dir,  sizeof(p->direccion)-1);
+
+        /* Refrescar la vista */
+        refresh_clientes(NULL);
+    }
+ 
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+G_MODULE_EXPORT void on_cliFiltro_search_changed(GtkButton *btn, gpointer user_data)
+{
+    const char *texto   = gtk_entry_get_text(GTK_ENTRY(
+        gtk_builder_get_object(builder, "cliFiltro")));
+
+    /* Simplemente repuebla usando el texto como filtro */
+    refresh_clientes(texto);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  CARGADO DEL ARCHIVO GLADE
@@ -456,9 +729,13 @@ int main(int argc, char *argv[]) {
     /* Conectar señales definidas en Glade con nuestros callbacks */
     gtk_builder_connect_signals(builder, NULL);
     init_inventario();
+    init_clientes();
 
     /* Mostrar la ventana y todos sus hijos */
     gtk_widget_show_all(window);
+    
+    
+    preguntarNombre();
 
     /* Bucle principal de GTK */
     gtk_main();
