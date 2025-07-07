@@ -51,6 +51,20 @@ typedef struct {
 	int numero;
 } Trabajador;
 
+typedef struct {
+	char codigo_producto[50];
+	int cantidad;
+	float precio;
+} Compra;
+
+typedef struct {
+	int num;
+	int fecha;
+	char cedula_cliente[50];
+	Compra contenido[50];
+	float total;
+} Facturas;
+
 
 static GtkBuilder *builder = NULL;
 
@@ -63,12 +77,13 @@ static Producto inventario[MAX_PRODUCTOS] = {
 static int n_inventario = 3;
 
 /* Prototipo del callback para cerrar la ventana */
-static void on_main_window_destroy(GtkWidget *widget, gpointer data) {
+G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_data) {
     gtk_main_quit();
 }
 
 /* Prototipos de funcion */
 G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_data);
+G_MODULE_EXPORT void on_btnFacturas_clicked(GtkButton *button, gpointer user_data);
 G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_data);
 
 void init_inventario();
@@ -99,6 +114,18 @@ G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_d
     // Recupera el widget hijo por su ID de Glade
     GtkWidget *page = GTK_WIDGET(
         gtk_builder_get_object(builder, "page_inventario") 
+    );
+
+    // Muestra esa página
+    gtk_stack_set_visible_child(stack, page);
+}
+
+G_MODULE_EXPORT void on_btnFacturas_clicked(GtkButton *button, gpointer user_data)
+{
+    GtkStack *stack = GTK_STACK(user_data);
+    // Recupera el widget hijo por su ID de Glade
+    GtkWidget *page = GTK_WIDGET(
+        gtk_builder_get_object(builder, "page_facturas") 
     );
 
     // Muestra esa página
