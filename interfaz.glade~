@@ -688,7 +688,7 @@ Tienda de Zapatos!</property>
                     <property name="track-visited-links">False</property>
                     <attributes>
                       <attribute name="font-desc" value="Sans Bold 20"/>
-                      <attribute name="foreground" value="#000000000000"/>
+                      <attribute name="foreground" value="#f8f8e4e45c5c"/>
                     </attributes>
                   </object>
                 </child>
@@ -1656,6 +1656,7 @@ Tienda de Zapatos!</property>
                       <object class="GtkTreeView" id="tree_factura">
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
+                        <signal name="row-activated" handler="on_tree_factura_row_activated" swapped="no"/>
                         <child internal-child="selection">
                           <object class="GtkTreeSelection"/>
                         </child>

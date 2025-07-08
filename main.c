@@ -1079,6 +1079,42 @@ G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data)
 }
 
 
+int obtener_seleccion_fact()
+{
+	GtkTreeView      *tree    = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_factura"));
+    GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
+    GtkTreeIter       iter;
+    GtkTreeModel     *model;
+
+    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return -1;
+
+    /* Obtener código y buscar índice */
+    gchar *cod;
+    gtk_tree_model_get(model, &iter, COL_CODIGO, &cod, -1);
+    int idx = -1;
+    for (int i = 0; i < factura_actual.n_productos; i++) {
+        if (strcmp(factura_actual.productos[i].codigo, cod) == 0) { idx = i; break; }
+    }
+    g_free(cod);
+    return idx;
+}
+
+G_MODULE_EXPORT void on_factEliminar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion_fact();
+    if (idx < 0) return;
+
+    /* Mover a la izquierda el arreglo */
+    for (gint i = idx; i < factura_actual.n_productos - 1; i++) {
+        factura_actual.productos[i] = factura_actual.productos[i + 1];
+    }
+    factura_actual.n_productos--;
+
+    /* Refrescar la vista */
+    refresh_factura();
+}
+
 
 
 

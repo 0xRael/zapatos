@@ -1117,7 +1117,7 @@ Tienda de Zapatos!</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="factEliminar">
+                      <object class="GtkButton" id="factElimi">
                         <property name="label" translatable="yes">- Eliminar</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1709,7 +1709,18 @@ Tienda de Zapatos!</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkButton" id="factEliminar">
+                        <property name="label" translatable="yes">- Quitar de la compra</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_factEliminar_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>
