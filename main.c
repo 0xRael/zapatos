@@ -49,18 +49,13 @@ typedef struct {
 } Trabajador;
 
 typedef struct {
-	char codigo_producto[50];
-	int cantidad;
-	float precio;
-} Compra;
-
-typedef struct {
 	int num;
 	int fecha;
 	char cedula_cliente[50];
-	Compra contenido[50];
+	Producto productos[50];
+	int n_productos;
 	float total;
-} Facturas;
+} Factura;
 
 
 static GtkBuilder *builder = NULL;
@@ -83,7 +78,7 @@ G_MODULE_EXPORT void on_btnFacturas_clicked(GtkButton *button, gpointer user_dat
 G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_data);
 
 // Inventario
-void init_inventario();
+void init_inventario(char *nombre_inv);
 void refresh_inventario(const char *filtro);
 int obtener_seleccion();
 G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data);
@@ -183,7 +178,7 @@ G_MODULE_EXPORT void on_btnFacturas_clicked(GtkButton *button, gpointer user_dat
     GtkStack *stack = GTK_STACK(user_data);
     // Recupera el widget hijo por su ID de Glade
     GtkWidget *page = GTK_WIDGET(
-        gtk_builder_get_object(builder, "page_facturas") 
+        gtk_builder_get_object(builder, "facturacion") 
     );
 
     // Muestra esa página
@@ -235,7 +230,7 @@ enum {
     N_COLUMNS
 };
 
-void init_inventario()
+void init_inventario(char *nombre_inv)
 {
     GtkTreeIter   iter;
 
@@ -253,7 +248,7 @@ void init_inventario()
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
-	    gtk_builder_get_object(builder, "tree_inventario")
+	    gtk_builder_get_object(builder, nombre_inv)
 	);
 	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
 	g_object_unref(store);
@@ -916,11 +911,11 @@ G_MODULE_EXPORT void on_traEditar_clicked(GtkButton *btn, gpointer user_data)
     );
     // vaciar los espacios previamente
     
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  clientes[idx].cedula);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  clientes[idx].nombre);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  clientes[idx].apellido);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  clientes[idx].telefono);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  clientes[idx].direccion);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  trabajadores[idx].cedula);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  trabajadores[idx].nombre);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  trabajadores[idx].apellido);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  trabajadores[idx].telefono);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  trabajadores[idx].direccion);
     
        gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK) {
@@ -970,6 +965,94 @@ G_MODULE_EXPORT void on_traFiltro_search_changed(GtkButton *btn, gpointer user_d
 
 
 
+/*
+FUNCIONES DE FACTURAS
+*/
+
+static Factura factura_actual;
+static float tasa_bcv = 102.16;
+static float tasa_cop = 4102.0;
+static float tasa_euro = 117.9;
+
+
+float dolar_a_bs(float cant){
+	return cant * tasa_bcv;
+}
+
+float dolar_a_cop(float cant){
+	return cant * tasa_cop;
+}
+
+float dolar_a_euro(float cant){
+	float bs = dolar_a_bs(cant);
+	return bs / tasa_euro;
+}
+
+void refresh_factura() {
+    GtkTreeIter   iter;
+
+    /* 1. Obtener TreeView y modelo */
+    GtkListStore *store = gtk_list_store_new(
+	    3,
+	    G_TYPE_STRING,  /* codigo */
+	    G_TYPE_STRING,  /* nombre */
+	    G_TYPE_FLOAT  /* precio */
+	);
+	
+	GtkTreeView *tree = GTK_TREE_VIEW(
+	    gtk_builder_get_object(builder, "tree_factura")
+	);
+	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
+	g_object_unref(store);
+
+    /* 2. Limpiar datos previos */
+    gtk_list_store_clear(store);
+
+	factura_actual.total = 0.0;
+	
+    /* 3. Población */
+    for (int i = 0; i < factura_actual.n_productos; i++) {
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(
+            store, &iter,
+            0,  factura_actual.productos[i].codigo,
+            1,  factura_actual.productos[i].nombre,
+            2,  factura_actual.productos[i].precio_venta,
+            -1
+        );
+        
+        factura_actual.total += factura_actual.productos[i].precio_venta;
+    }
+    
+    gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoDolar")),
+		g_strconcat(g_strdup_printf("%.2f", factura_actual.total), " $", NULL));
+	gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoEuro")),
+		g_strconcat(g_strdup_printf("%.2f", dolar_a_euro(factura_actual.total)), " €", NULL));
+	gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoBolivar")),
+		g_strconcat(g_strdup_printf("%.2f", dolar_a_bs(factura_actual.total)), " Bs.", NULL));
+	gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoCop")),
+		g_strconcat(g_strdup_printf("%.2f", dolar_a_cop(factura_actual.total)), " Cop", NULL));
+}
+
+G_MODULE_EXPORT void on_invCompra_clicked(GtkButton *btn, gpointer user_data)
+{
+	int idx = obtener_seleccion();
+	if(idx < 0) return;
+	
+	factura_actual.productos[factura_actual.n_productos] = inventario[idx];
+	factura_actual.n_productos++;
+	
+	refresh_factura();
+}
+
+G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data)
+{
+	// FACTURAR!!!
+}
+
+
+
+
 
 
 
@@ -1000,7 +1083,7 @@ int main(int argc, char *argv[]) {
 
     /* Conectar señales definidas en Glade con nuestros callbacks */
     gtk_builder_connect_signals(builder, NULL);
-    init_inventario();
+    init_inventario("tree_inventario");
     init_clientes();
     init_trabajadores();
 
