@@ -245,6 +245,8 @@ enum {
     COL_VENTA,
     COL_UBICACION,
     COL_PROVEEDOR,
+    COL_ENTRADAS,
+    COL_SALIDAS,
     N_COLUMNS
 };
 
@@ -264,7 +266,9 @@ void init_inventario(char *nombre_inv)
 	    G_TYPE_FLOAT,   /* precio compra */
 	    G_TYPE_FLOAT,   /* precio venta */
 	    G_TYPE_STRING,  /* ubicacion */
-	    G_TYPE_STRING   /* proveedor */
+	    G_TYPE_STRING,  /* proveedor */
+	    G_TYPE_INT,     /* entradas */
+	    G_TYPE_INT      /* salidas */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -291,6 +295,8 @@ void init_inventario(char *nombre_inv)
             7,  inventario[i].precio_venta,
             8,  inventario[i].ubicacion,
             9,  inventario[i].proveedor,
+            10, inventario[i].entradas,
+            11, inventario[i].salidas,
             -1
         );
     }
@@ -337,6 +343,8 @@ void refresh_inventario(const char *filtro) {
             7, inventario[i].precio_venta,
             8,  inventario[i].ubicacion,
             9,  inventario[i].proveedor,
+            10, inventario[i].entradas,
+            11, inventario[i].salidas,
             -1
         );
     }
@@ -435,7 +443,7 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
         p->precio_compra = atof(compra);
         p->precio_venta = atof(venta);
 
-		p->entradas = 0;
+		p->entradas = atoi(cant);
 		p->salidas = 0;
 
         /* Refrescar la vista */
@@ -498,13 +506,12 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
         strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
         
+		p->entradas += atoi(cant) - p->cantidad;
+        
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
         p->precio_compra = atof(compra);
         p->precio_venta = atof(venta);
-
-		p->entradas = 0;
-		p->salidas = 0;
 
         /* Refrescar la vista */
         refresh_inventario(NULL);
@@ -1010,9 +1017,9 @@ FUNCIONES DE FACTURAS
 /////////////////////
 
 static Factura factura_actual;
-static float tasa_bcv = 102.16;
-static float tasa_cop = 4102.0;
-static float tasa_euro = 117.9;
+static float tasa_bcv = 112.13;
+static float tasa_cop = 4052.0;
+static float tasa_euro = 131.59;
 
 
 float dolar_a_bs(float cant){
@@ -1033,10 +1040,12 @@ void refresh_factura() {
 
     /* 1. Obtener TreeView y modelo */
     GtkListStore *store = gtk_list_store_new(
-	    3,
+	    5,
 	    G_TYPE_STRING,  /* codigo */
 	    G_TYPE_STRING,  /* nombre */
-	    G_TYPE_FLOAT  /* precio */
+	    G_TYPE_FLOAT,  /* precio */
+	    G_TYPE_INT,    /* cant */
+	    G_TYPE_FLOAT  /* subtotal */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -1058,11 +1067,15 @@ void refresh_factura() {
             0,  factura_actual.productos[i].codigo,
             1,  factura_actual.productos[i].nombre,
             2,  factura_actual.productos[i].precio_venta,
+            3,  factura_actual.productos[i].cantidad,
+            4,  factura_actual.productos[i].precio_venta * factura_actual.productos[i].cantidad,
             -1
         );
         
-        factura_actual.total += factura_actual.productos[i].precio_venta;
+        factura_actual.total += factura_actual.productos[i].precio_venta * factura_actual.productos[i].cantidad;
     }
+    
+    factura_actual.total += factura_actual.total * (IVA_RATE/100.0);
     
     gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoDolar")),
 		g_strconcat(g_strdup_printf("%.2f", factura_actual.total), " $", NULL));
@@ -1080,6 +1093,7 @@ G_MODULE_EXPORT void on_invCompra_clicked(GtkButton *btn, gpointer user_data)
 	if(idx < 0) return;
 	
 	factura_actual.productos[factura_actual.n_productos] = inventario[idx];
+	factura_actual.productos[factura_actual.n_productos].cantidad = 1;
 	factura_actual.n_productos++;
 	
 	refresh_factura();
@@ -1227,6 +1241,25 @@ G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data) 
     } else {
         mostrar_alerta("Factura guardada con éxito.");
     }
+    
+    // se recorre los productos facturados
+    for(int i = 0; i < factura_actual.n_productos; i++){
+	    int idx = -1;
+	    // se busca el producto equivalente en el inventario, con el mismo codigo
+	    for (int j = 0; j < n_inventario; j++) {
+	        if (strcmp(inventario[j].codigo, factura_actual.productos[i].codigo) == 0) { 
+	        	// se reduce la cantidad registrada en el inventario
+				inventario[j].cantidad -= factura_actual.productos[i].cantidad;
+				inventario[j].salidas += factura_actual.productos[i].cantidad;
+			}
+	    }
+	}
+    
+    struct Factura f; //factura vacia
+    factura_actual = f;
+    
+    refresh_factura();
+    refresh_inventario(NULL);
 }
 
 
@@ -1250,6 +1283,33 @@ int obtener_seleccion_fact()
     }
     g_free(cod);
     return idx;
+}
+
+G_MODULE_EXPORT void on_tree_factura_row_activated(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion_fact();
+    if (idx < 0) return;
+    
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "factura_editar_cantidad")
+    );
+    gtk_entry_set_text(
+		GTK_ENTRY(gtk_builder_get_object(builder, "factura_nueva_cantidad")),
+		g_strdup_printf("%d", factura_actual.productos[idx].cantidad));
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK) {
+        /* Leer campos */
+        const char *cant  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "factura_nueva_cantidad")));
+
+        /* Añadir al arreglo */
+        factura_actual.productos[idx].cantidad = atoi(cant);
+
+        /* Refrescar la vista */
+        refresh_factura();
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
 }
 
 G_MODULE_EXPORT void on_factEliminar_clicked(GtkButton *btn, gpointer user_data)
