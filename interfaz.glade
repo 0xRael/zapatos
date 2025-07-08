@@ -998,7 +998,7 @@ Tienda de Zapatos!</property>
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="pixbuf">GIBRONAAAAAAAAAA.jpg</property>
+                    <property name="pixbuf">Chiara.jpg</property>
                   </object>
                 </child>
               </object>
