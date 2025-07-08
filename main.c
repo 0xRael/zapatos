@@ -3,64 +3,80 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <glib.h>
+#include <time.h>        /* para time_t */
 
+/* 1) Forward‐declaración de Factura para usarla abajo */
+typedef struct Factura Factura;
+
+/* 2) Prototipos externos de facturación */
+void     mostrar_alerta(const char *mensaje);
+int      siguiente_numero_factura(void);
+gboolean guardar_factura(Factura *factura);
 
 /*
-  DEFINICIONES
+  DEFINICIONES DE ESTRUCTURAS
 */
+#define MAX_PRODUCTOS     100
+#define MAX_CLIENTES      100
+#define MAX_TRABAJADORES  100
+#define IVA_RATE          16.0f
 
 typedef struct {
-	char codigo[50];
-	char nombre[50];
-	char descripcion[200];
-	char categoria[50];
-	
-	int cantidad; // Numero de unidades en Stock
-	
-	char ubicacion[50];
-	char proveedor[50];
-	
-	int fecha; // Fecha de adquisicion
-	
-	float precio_compra;
-	float precio_venta;
-	
-	// Movimiento de inventario:
-	int entradas;
-	int salidas;
-	
-	int stock_minimo; // Nivel de stock minimo
+    char codigo[50];
+    char nombre[50];
+    char descripcion[200];
+    char categoria[50];
+    int  cantidad;
+    char ubicacion[50];
+    char proveedor[50];
+    int  fecha;
+    float precio_compra;
+    float precio_venta;
+    int  entradas;
+    int  salidas;
+    int  stock_minimo;
 } Producto;
 
 typedef struct {
-	char cedula[50];
-	char nombre[50];
-	char apellido[50];
-	char telefono[50];
-	char direccion[200];
+    char cedula[50];
+    char nombre[50];
+    char apellido[50];
+    char telefono[50];
+    char direccion[200];
 } Cliente;
 
 typedef struct {
-	char cedula[50];
-	char nombre[50];
-	char apellido[50];
-	char telefono[50];
-	char direccion[200];
+    char cedula[50];
+    char nombre[50];
+    char apellido[50];
+    char telefono[50];
+    char direccion[200];
 } Trabajador;
 
-typedef struct {
-	int num;
-	int fecha;
-	char cedula_cliente[50];
-	Producto productos[50];
-	int n_productos;
-	float total;
+/* 3) Única definición de Factura */
+typedef struct Factura {
+    char     tienda_nombre[100];
+    int      num;
+    time_t   fecha;
+    char     cedula_cliente[50];
+    char     cliente_nombre[100];
+    char     cliente_direccion[200];
+    Producto productos[50];
+    int      n_productos;
+    float    subtotal;
+    float    iva;
+    float    total;
 } Factura;
 
+/*
+  VARIABLES GLOBALES (una sola vez)
+*/
+static GtkBuilder *builder        = NULL;
+static char        nombre_tienda[50];
+static Producto    inventario[MAX_PRODUCTOS];
+static Cliente     clientes[MAX_CLIENTES];
+static Trabajador  trabajadores[MAX_TRABAJADORES];
 
-static GtkBuilder *builder = NULL;
-
-static char nombre_tienda[50];
 
 /* Prototipo del callback para cerrar la ventana */
 G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_data) {
@@ -227,6 +243,8 @@ enum {
     COL_STOCK,
     COL_COMPRA,
     COL_VENTA,
+    COL_UBICACION,
+    COL_PROVEEDOR,
     N_COLUMNS
 };
 
@@ -244,7 +262,9 @@ void init_inventario(char *nombre_inv)
 	    G_TYPE_INT,     /* cantidad */
 	    G_TYPE_INT,     /* stock minimo */
 	    G_TYPE_FLOAT,   /* precio compra */
-	    G_TYPE_FLOAT    /* precio venta */
+	    G_TYPE_FLOAT,   /* precio venta */
+	    G_TYPE_STRING,  /* ubicacion */
+	    G_TYPE_STRING   /* proveedor */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -269,6 +289,8 @@ void init_inventario(char *nombre_inv)
             5,  inventario[i].stock_minimo,
             6,  inventario[i].precio_compra,
             7,  inventario[i].precio_venta,
+            8,  inventario[i].ubicacion,
+            9,  inventario[i].proveedor,
             -1
         );
     }
@@ -291,9 +313,13 @@ void refresh_inventario(const char *filtro) {
         if (filtro && *filtro) {
         	// Pasamos ambos a minusculas durante la busqueda por nombre para q las mayusculas no sean relevantes
             gchar *nombre = g_ascii_strdown(inventario[i].nombre, -1);
+            gchar *prove = g_ascii_strdown(inventario[i].proveedor, -1);
+            gchar *desc = g_ascii_strdown(inventario[i].descripcion, -1);
 			gchar *filtro_minus = g_ascii_strdown(filtro,   -1);
 			
             if (!strstr(nombre, filtro_minus) &&
+            	!strstr(prove, filtro_minus) &&
+            	!strstr(desc, filtro_minus) &&
                 !strstr(inventario[i].codigo, filtro))
                 continue;
         }
@@ -309,6 +335,8 @@ void refresh_inventario(const char *filtro) {
             5, inventario[i].stock_minimo,
             6, inventario[i].precio_compra,
             7, inventario[i].precio_venta,
+            8,  inventario[i].ubicacion,
+            9,  inventario[i].proveedor,
             -1
         );
     }
@@ -366,6 +394,8 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  "");
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -386,6 +416,10 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+        const char *ubi = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
+        const char *prove = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[n_inventario++];
@@ -393,6 +427,8 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
         strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
+        strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
         
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
@@ -426,6 +462,8 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  g_strdup_printf("%d", inventario[idx].stock_minimo));
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  g_strdup_printf("%f", inventario[idx].precio_venta));
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  g_strdup_printf("%f", inventario[idx].precio_compra));
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  inventario[idx].ubicacion);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  inventario[idx].proveedor);
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -446,6 +484,10 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+        const char *ubi = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
+        const char *prove = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[idx];
@@ -453,6 +495,8 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
         strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
+        strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
         
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
@@ -958,16 +1002,12 @@ G_MODULE_EXPORT void on_traFiltro_search_changed(GtkButton *btn, gpointer user_d
 
 
 
-
-
-
-
-
-
-
 /*
 FUNCIONES DE FACTURAS
 */
+///////////////////
+// Instancia global
+/////////////////////
 
 static Factura factura_actual;
 static float tasa_bcv = 102.16;
@@ -1033,7 +1073,7 @@ void refresh_factura() {
 	gtk_label_set_text(GTK_LABEL(gtk_builder_get_object(builder, "montoCop")),
 		g_strconcat(g_strdup_printf("%.2f", dolar_a_cop(factura_actual.total)), " Cop", NULL));
 }
-
+        
 G_MODULE_EXPORT void on_invCompra_clicked(GtkButton *btn, gpointer user_data)
 {
 	int idx = obtener_seleccion();
@@ -1045,17 +1085,217 @@ G_MODULE_EXPORT void on_invCompra_clicked(GtkButton *btn, gpointer user_data)
 	refresh_factura();
 }
 
-G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data)
+// Muestra un diálogo para confirmar o ingresar datos del cliente
+static gboolean confirmar_datos_cliente() {
+    GtkDialog *dlg = GTK_DIALOG(gtk_builder_get_object(builder, "dlg_confirm_cliente"));
+    if (gtk_dialog_run(dlg) != GTK_RESPONSE_OK) {
+        gtk_widget_hide(GTK_WIDGET(dlg));
+        return FALSE;
+    }
+
+    GtkEntry *eCedula = GTK_ENTRY(gtk_builder_get_object(builder, "entryClienteCedula"));
+
+    strncpy(
+        factura_actual.cedula_cliente,
+        gtk_entry_get_text(eCedula),
+        sizeof(factura_actual.cedula_cliente) - 1
+    );
+    factura_actual.cedula_cliente[sizeof(factura_actual.cedula_cliente) - 1] = '\0';
+
+    gtk_widget_hide(GTK_WIDGET(dlg));
+    return TRUE;
+}
+
+
+// Construye y muestra el resumen de la factura
+static void mostrar_resumen_factura() {
+    // Calcular subtotales e IVA
+    factura_actual.subtotal = 0.0f;
+    for (int i = 0; i < factura_actual.n_productos; i++) {
+        Producto *p = &factura_actual.productos[i];
+        factura_actual.subtotal += p->precio_venta * p->cantidad;
+    }
+    factura_actual.iva   = factura_actual.subtotal * IVA_RATE / 100.0f;
+    factura_actual.total = factura_actual.subtotal + factura_actual.iva;
+
+    // Obtener diálogo y widgets
+    GtkDialog  *dlg     = GTK_DIALOG(
+        gtk_builder_get_object(builder, "dlg_invoice_summary")
+    );
+    GtkLabel   *lStore  = GTK_LABEL(
+        gtk_builder_get_object(builder, "lblStoreName")
+    );
+    GtkLabel   *lNum    = GTK_LABEL(
+        gtk_builder_get_object(builder, "lblInvoiceNumber")
+    );
+    GtkLabel   *lDate   = GTK_LABEL(
+        gtk_builder_get_object(builder, "lblDate")
+    );
+    GtkLabel   *lClient = GTK_LABEL(
+        gtk_builder_get_object(builder, "lblClientData")
+    );
+    GtkTreeView *tree   = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "treeInvoiceDetails")
+    );
+
+    // Actualizar etiquetas de encabezado
+    gtk_label_set_text(lStore, factura_actual.tienda_nombre);
+
+    char buf[128];
+    snprintf(buf, sizeof(buf), "Factura #%d", factura_actual.num);
+    gtk_label_set_text(lNum, buf);
+
+    struct tm *tm_info = localtime(&factura_actual.fecha);
+    strftime(buf, sizeof(buf), "%d/%m/%Y %H:%M", tm_info);
+    gtk_label_set_text(lDate, buf);
+
+    snprintf(buf, sizeof(buf), "%s  Cédula: %s\n%s",
+             factura_actual.cliente_nombre,
+             factura_actual.cedula_cliente,
+             factura_actual.cliente_direccion);
+    gtk_label_set_text(lClient, buf);
+
+    // Crear y poblar el ListStore con detalle de productos
+    GtkListStore *store = gtk_list_store_new(
+        4,
+        G_TYPE_INT,
+        G_TYPE_STRING,
+        G_TYPE_FLOAT,
+        G_TYPE_FLOAT
+    );
+    gtk_tree_view_set_model(tree, GTK_TREE_MODEL(store));
+    g_object_unref(store);
+    gtk_list_store_clear(store);
+
+    GtkTreeIter iter;
+    for (int i = 0; i < factura_actual.n_productos; i++) {
+        Producto *p = &factura_actual.productos[i];
+        float subtotal_line = p->precio_venta * p->cantidad;
+
+        gtk_list_store_append(store, &iter);
+        gtk_list_store_set(
+            store, &iter,
+            0, p->cantidad,
+            1, p->nombre,
+            2, p->precio_venta,
+            3, subtotal_line,
+            -1
+        );
+    }
+
+    // Mostrar totales al pie
+    GtkLabel *lSub   = GTK_LABEL(gtk_builder_get_object(builder, "lblSubtotal"));
+    GtkLabel *lIVA   = GTK_LABEL(gtk_builder_get_object(builder, "lblIVA"));
+    GtkLabel *lTotal = GTK_LABEL(gtk_builder_get_object(builder, "lblTotal"));
+
+    snprintf(buf, sizeof(buf), "%.2f $", factura_actual.subtotal);
+    gtk_label_set_text(lSub, buf);
+    snprintf(buf, sizeof(buf), "%.2f $ (%.1f%%)", factura_actual.iva, IVA_RATE);
+    gtk_label_set_text(lIVA, buf);
+    snprintf(buf, sizeof(buf), "%.2f $", factura_actual.total);
+    gtk_label_set_text(lTotal, buf);
+
+    // Mostrar diálogo
+    gtk_widget_show_all(GTK_WIDGET(dlg));
+    gtk_dialog_run(dlg);
+    gtk_widget_hide(GTK_WIDGET(dlg));
+}
+
+// Callback del botón Facturar
+G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data) {
+    // 1. Validaciones básicas
+    g_print("Botón Facturar presionado\n");
+
+    if (factura_actual.n_productos == 0) {
+        mostrar_alerta("Agrega al menos un producto.");
+        return;
+    }
+    // 2. Confirmar o ingresar datos del cliente
+    if (!confirmar_datos_cliente()) {
+        return;
+    }
+    // 3. Asignar número y fecha
+    factura_actual.num   = siguiente_numero_factura();
+    factura_actual.fecha = time(NULL);
+
+    // 4. Mostrar resumen y calcular totales con IVA
+    mostrar_resumen_factura();
+
+    // 5. Guardar la factura (archivo/BD) si todo está correcto
+    if (!guardar_factura(&factura_actual)) {
+        mostrar_alerta("Error al guardar la factura.");
+    } else {
+        mostrar_alerta("Factura guardada con éxito.");
+    }
+}
+
+
+
+int obtener_seleccion_fact()
 {
-	// FACTURAR!!!
+	GtkTreeView      *tree    = GTK_TREE_VIEW(
+        gtk_builder_get_object(builder, "tree_factura"));
+    GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
+    GtkTreeIter       iter;
+    GtkTreeModel     *model;
+
+    if (!gtk_tree_selection_get_selected(sel, &model, &iter)) return -1;
+
+    /* Obtener código y buscar índice */
+    gchar *cod;
+    gtk_tree_model_get(model, &iter, COL_CODIGO, &cod, -1);
+    int idx = -1;
+    for (int i = 0; i < factura_actual.n_productos; i++) {
+        if (strcmp(factura_actual.productos[i].codigo, cod) == 0) { idx = i; break; }
+    }
+    g_free(cod);
+    return idx;
+}
+
+G_MODULE_EXPORT void on_factEliminar_clicked(GtkButton *btn, gpointer user_data)
+{
+    int idx = obtener_seleccion_fact();
+    if (idx < 0) return;
+
+    /* Mover a la izquierda el arreglo */
+    for (gint i = idx; i < factura_actual.n_productos - 1; i++) {
+        factura_actual.productos[i] = factura_actual.productos[i + 1];
+    }
+    factura_actual.n_productos--;
+
+    /* Refrescar la vista */
+    refresh_factura();
 }
 
 
 
 
 
+//////////////
+// Muestra un mensaje en un cuadro de diálogo
+void mostrar_alerta(const char *mensaje) {
+    GtkWidget *dialog = gtk_message_dialog_new(NULL,
+        GTK_DIALOG_MODAL,
+        GTK_MESSAGE_INFO,
+        GTK_BUTTONS_OK,
+        "%s", mensaje);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+}
 
+// Genera un número de factura secuencial
+int siguiente_numero_factura(void) {
+    static int contador = 1000; // Puedes guardar y cargar desde archivo si deseas persistencia
+    return contador++;
+}
 
+// Simula guardar la factura (puedes ampliar esta función para escribirla en archivo o BD)
+gboolean guardar_factura(Factura *factura) {
+    // Por ahora, siempre retorna TRUE
+    return TRUE;
+}
+
+//////////////
 
 /*
  CARGADO DEL ARCHIVO GLADE
@@ -1069,6 +1309,11 @@ int main(int argc, char *argv[]) {
 
     /* Inicializar GTK */
     gtk_init(&argc, &argv);
+    
+    GtkSettings *settings = gtk_settings_get_default();
+    g_object_set(settings,
+                 "gtk-application-prefer-dark-theme", TRUE,
+                 NULL);
 
     /* Crear el GtkBuilder y cargar el archivo .glade */
     builder = gtk_builder_new();
