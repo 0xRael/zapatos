@@ -412,9 +412,9 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")));
         const char *min = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")));
-        const char *compra = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
+        const char *compra = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
         const char *ubi = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
@@ -480,9 +480,9 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCantidad")));
         const char *min = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")));
-        const char *compra = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
+        const char *compra = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
         const char *ubi = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
