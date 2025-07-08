@@ -257,7 +257,7 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=11 -->
+          <!-- n-columns=2 n-rows=14 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -484,6 +484,63 @@
                 <property name="left-attach">0</property>
                 <property name="top-attach">1</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">11</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Ubicacion:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="aggUbicacion">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="max-length">50</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Proveedor:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="aggProveedor">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="max-length">50</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">13</property>
               </packing>
             </child>
           </object>
@@ -738,8 +795,7 @@ Tienda de Zapatos!</property>
           <object class="GtkStack" id="stack_main">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="transition-duration">300</property>
-            <property name="transition-type">slide-right</property>
+            <property name="transition-type">slide-left-right</property>
             <child>
               <object class="GtkBox" id="page_inventario">
                 <property name="name">page_inventario</property>
@@ -948,6 +1004,34 @@ Tienda de Zapatos!</property>
                           <object class="GtkCellRendererText"/>
                           <attributes>
                             <attribute name="text">7</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Ubicacion</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">8</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">8</attribute>
+                          </attributes>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn">
+                        <property name="resizable">True</property>
+                        <property name="title" translatable="yes">Proveedor</property>
+                        <property name="reorderable">True</property>
+                        <property name="sort-column-id">9</property>
+                        <child>
+                          <object class="GtkCellRendererText"/>
+                          <attributes>
+                            <attribute name="text">9</attribute>
                           </attributes>
                         </child>
                       </object>
@@ -1276,6 +1360,7 @@ Tienda de Zapatos!</property>
                     <property name="can-focus">True</property>
                     <property name="search-column">0</property>
                     <property name="enable-grid-lines">both</property>
+                    <signal name="row-activated" handler="on_cliEditar_clicked" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
                     </child>
@@ -1450,6 +1535,7 @@ Tienda de Zapatos!</property>
                     <property name="can-focus">True</property>
                     <property name="search-column">0</property>
                     <property name="enable-grid-lines">both</property>
+                    <signal name="row-activated" handler="on_traEditar_clicked" swapped="no"/>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection"/>
                     </child>
@@ -1704,7 +1790,18 @@ Tienda de Zapatos!</property>
                       </packing>
                     </child>
                     <child>
-                      <placeholder/>
+                      <object class="GtkButton" id="btnFacturar">
+                        <property name="label" translatable="yes">Facturar</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <signal name="clicked" handler="on_btnFacturar_clicked" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">5</property>
+                      </packing>
                     </child>
                   </object>
                   <packing>

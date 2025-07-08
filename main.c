@@ -227,6 +227,8 @@ enum {
     COL_STOCK,
     COL_COMPRA,
     COL_VENTA,
+    COL_UBICACION,
+    COL_PROVEEDOR,
     N_COLUMNS
 };
 
@@ -244,7 +246,9 @@ void init_inventario(char *nombre_inv)
 	    G_TYPE_INT,     /* cantidad */
 	    G_TYPE_INT,     /* stock minimo */
 	    G_TYPE_FLOAT,   /* precio compra */
-	    G_TYPE_FLOAT    /* precio venta */
+	    G_TYPE_FLOAT,   /* precio venta */
+	    G_TYPE_STRING,  /* ubicacion */
+	    G_TYPE_STRING   /* proveedor */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -269,6 +273,8 @@ void init_inventario(char *nombre_inv)
             5,  inventario[i].stock_minimo,
             6,  inventario[i].precio_compra,
             7,  inventario[i].precio_venta,
+            8,  inventario[i].ubicacion,
+            9,  inventario[i].proveedor,
             -1
         );
     }
@@ -291,9 +297,13 @@ void refresh_inventario(const char *filtro) {
         if (filtro && *filtro) {
         	// Pasamos ambos a minusculas durante la busqueda por nombre para q las mayusculas no sean relevantes
             gchar *nombre = g_ascii_strdown(inventario[i].nombre, -1);
+            gchar *prove = g_ascii_strdown(inventario[i].proveedor, -1);
+            gchar *desc = g_ascii_strdown(inventario[i].descripcion, -1);
 			gchar *filtro_minus = g_ascii_strdown(filtro,   -1);
 			
             if (!strstr(nombre, filtro_minus) &&
+            	!strstr(prove, filtro_minus) &&
+            	!strstr(desc, filtro_minus) &&
                 !strstr(inventario[i].codigo, filtro))
                 continue;
         }
@@ -309,6 +319,8 @@ void refresh_inventario(const char *filtro) {
             5, inventario[i].stock_minimo,
             6, inventario[i].precio_compra,
             7, inventario[i].precio_venta,
+            8,  inventario[i].ubicacion,
+            9,  inventario[i].proveedor,
             -1
         );
     }
@@ -366,6 +378,8 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  "");
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -386,6 +400,10 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+        const char *ubi = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
+        const char *prove = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[n_inventario++];
@@ -393,6 +411,8 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
         strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
+        strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
         
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
@@ -426,6 +446,8 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggMinimo")),  g_strdup_printf("%d", inventario[idx].stock_minimo));
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")),  g_strdup_printf("%f", inventario[idx].precio_venta));
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  g_strdup_printf("%f", inventario[idx].precio_compra));
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  inventario[idx].ubicacion);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  inventario[idx].proveedor);
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -446,6 +468,10 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggVenta")));
         const char *venta = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")));
+        const char *ubi = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
+        const char *prove = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[idx];
@@ -453,6 +479,8 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->nombre,      nom,  sizeof(p->nombre)-1);
         strncpy(p->descripcion,desc,  sizeof(p->descripcion)-1);
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
+        strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
+        strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
         
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
