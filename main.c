@@ -1097,6 +1097,11 @@ int main(int argc, char *argv[]) {
 
     /* Inicializar GTK */
     gtk_init(&argc, &argv);
+    
+    GtkSettings *settings = gtk_settings_get_default();
+    g_object_set(settings,
+                 "gtk-application-prefer-dark-theme", TRUE,
+                 NULL);
 
     /* Crear el GtkBuilder y cargar el archivo .glade */
     builder = gtk_builder_new();

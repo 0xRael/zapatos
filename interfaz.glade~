@@ -659,6 +659,19 @@ Tienda de Zapatos!</property>
               <object class="GtkListBoxRow">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="pixbuf">GIBRONAAAAAAAAAA.jpg</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkListBoxRow">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
                 <property name="margin-top">20</property>
                 <property name="margin-bottom">30</property>
                 <property name="activatable">False</property>
@@ -675,6 +688,7 @@ Tienda de Zapatos!</property>
                     <property name="track-visited-links">False</property>
                     <attributes>
                       <attribute name="font-desc" value="Sans Bold 20"/>
+                      <attribute name="foreground" value="#000000000000"/>
                     </attributes>
                   </object>
                 </child>
