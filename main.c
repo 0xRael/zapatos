@@ -75,6 +75,12 @@ static int n_inventario = 0;
 static int n_clientes = 0;
 static int n_trabajadores = 0;
 
+
+static Factura factura_actual;
+static float tasa_bcv = 112.13;
+static float tasa_cop = 4052.0;
+static float tasa_euro = 131.59;
+
 /* Prototipo del callback para cerrar la ventana */
 G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_data) {
     gtk_main_quit();
@@ -168,11 +174,29 @@ void crear_directorio(const char *ruta) {
     }
 }
 
+void guardar_nombre_tienda() {
+    FILE *f = fopen("data/nombre.txt", "w");
+    if (!f) {
+        return;
+    }
+
+    fprintf(f, "%s\n", nombre_tienda);
+    fclose(f);
+}
+
 void cargar_todo(){
 	crear_directorio("data/");
 	n_inventario = load_bin("inventario.bin", inventario, sizeof(Producto), MAX_PRODUCTOS);
 	n_clientes = load_bin("clientes.bin", clientes, sizeof(Cliente), MAX_CLIENTES);
 	n_trabajadores = load_bin("trabajadores.bin", trabajadores, sizeof(Trabajador), MAX_TRABAJADORES);
+	
+	FILE *f = fopen("data/nombre.txt", "r");
+	if (f) {
+	    fgets(nombre_tienda, sizeof(nombre_tienda), f);
+	    fclose(f);
+	    // Quitar salto de línea si lo quieres más limpio
+	    nombre_tienda[strcspn(nombre_tienda, "\n")] = '\0';
+	}
 }
 
 
@@ -190,9 +214,52 @@ void preguntarNombre()
             GTK_ENTRY(gtk_builder_get_object(builder, "nombreTienda")));
 
         strncpy(nombre_tienda, nom, sizeof(nombre_tienda)-1);
+        
+        guardar_nombre_tienda();
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
 }
+
+void preguntar_tasas()
+{
+    GtkDialog    *dialog  = GTK_DIALOG(
+        gtk_builder_get_object(builder, "cambio_tasa")
+    );
+    
+    gint resp = gtk_dialog_run(dialog);
+    if (resp == GTK_RESPONSE_OK) {
+        /* Leer campos */
+        const char *dolar  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "bcv_dolar")));
+        const char *euro  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "bcv_euro")));
+        const char *cop  = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "tasa_cop")));
+		
+		tasa_bcv = atol(dolar);
+		tasa_euro = atol(euro);
+		tasa_cop = atol(cop);
+    }
+    gtk_widget_hide(GTK_WIDGET(dialog));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
@@ -258,6 +325,14 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
     // Muestra esa página
     gtk_stack_set_visible_child(stack, page);
 }
+
+
+
+
+
+
+
+
 
 
 
@@ -1046,14 +1121,6 @@ G_MODULE_EXPORT void on_traFiltro_search_changed(GtkButton *btn, gpointer user_d
 /*
 FUNCIONES DE FACTURAS
 */
-///////////////////
-// Instancia global
-/////////////////////
-
-static Factura factura_actual;
-static float tasa_bcv = 112.13;
-static float tasa_cop = 4052.0;
-static float tasa_euro = 131.59;
 
 
 float dolar_a_bs(float cant){
@@ -1187,7 +1254,7 @@ static void mostrar_resumen_factura() {
     );
 
     // Actualizar etiquetas de encabezado
-    gtk_label_set_text(lStore, factura_actual.tienda_nombre);
+    gtk_label_set_text(lStore, nombre_tienda);
 
     char buf[128];
     snprintf(buf, sizeof(buf), "Factura #%d", factura_actual.num);
@@ -1290,6 +1357,7 @@ G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data) 
 	}
     
     struct Factura f; //factura vacia
+    f.n_productos = 0;
     factura_actual = f;
     
     save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
@@ -1433,8 +1501,10 @@ int main(int argc, char *argv[]) {
     /* Mostrar la ventana y todos sus hijos */
     gtk_widget_show_all(window);
     
-    
-    preguntarNombre();
+    if (strlen(nombre_tienda) == 0) {
+    	preguntarNombre();
+    }
+    preguntar_tasas();
 
     /* Bucle principal de GTK */
     gtk_main();
