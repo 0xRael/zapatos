@@ -362,6 +362,7 @@ enum {
     COL_PROVEEDOR,
     COL_ENTRADAS,
     COL_SALIDAS,
+    COL_GANANCIA,
     N_COLUMNS
 };
 
@@ -383,7 +384,8 @@ void init_inventario(char *nombre_inv)
 	    G_TYPE_STRING,  /* ubicacion */
 	    G_TYPE_STRING,  /* proveedor */
 	    G_TYPE_INT,     /* entradas */
-	    G_TYPE_INT      /* salidas */
+	    G_TYPE_INT,     /* salidas */
+	    G_TYPE_FLOAT    /* ganancia */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -412,6 +414,7 @@ void init_inventario(char *nombre_inv)
             9,  inventario[i].proveedor,
             10, inventario[i].entradas,
             11, inventario[i].salidas,
+            12, ((inventario[i].precio_venta - inventario[i].precio_compra) / inventario[i].precio_compra) * 100,
             -1
         );
     }
@@ -456,10 +459,11 @@ void refresh_inventario(const char *filtro) {
             5, inventario[i].stock_minimo,
             6, inventario[i].precio_compra,
             7, inventario[i].precio_venta,
-            8,  inventario[i].ubicacion,
-            9,  inventario[i].proveedor,
-            10, inventario[i].entradas,
-            11, inventario[i].salidas,
+            8, inventario[i].ubicacion,
+            9, inventario[i].proveedor,
+            10,inventario[i].entradas,
+            11,inventario[i].salidas,
+            12,((inventario[i].precio_venta - inventario[i].precio_compra) / inventario[i].precio_compra) * 100,
             -1
         );
     }
@@ -903,6 +907,13 @@ enum {
     N_COLUMNS_TRA
 };
 
+void contador_trabajadores()
+{
+	gtk_label_set_text(
+		GTK_LABEL(gtk_builder_get_object(builder, "cantidadTrabajadores")),
+		g_strconcat(g_strdup_printf("%d", n_trabajadores), " trabajadores registrados.", NULL));
+}
+
 void init_trabajadores()
 {
     GtkTreeIter   iter;
@@ -939,6 +950,7 @@ void init_trabajadores()
             -1
         );
     }
+    contador_trabajadores();
 
 }
 
@@ -978,6 +990,7 @@ void refresh_trabajadores(const char *filtro) {
             -1
         );
     }
+    contador_trabajadores();
 }
 
 int obtener_seleccion_tra()

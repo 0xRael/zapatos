@@ -15,10 +15,30 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="button11">
+                <property name="label" translatable="yes">Cancelar</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="button12">
+                <property name="label" translatable="yes">OK</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -124,6 +144,10 @@
         </child>
       </object>
     </child>
+    <action-widgets>
+      <action-widget response="-6">button11</action-widget>
+      <action-widget response="-5">button12</action-widget>
+    </action-widgets>
   </object>
   <object class="GtkDialog" id="dialog_cli_agregar">
     <property name="can-focus">False</property>
@@ -1497,6 +1521,20 @@ Tienda de Zapatos!</property>
                         <child>
                           <object class="GtkTreeViewColumn">
                             <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Ganancia %</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort-column-id">12</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">12</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ubicacion</property>
                             <property name="clickable">True</property>
                             <property name="reorderable">True</property>
@@ -2384,6 +2422,17 @@ Tienda de Zapatos!</property>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>

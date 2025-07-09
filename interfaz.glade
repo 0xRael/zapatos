@@ -1521,6 +1521,20 @@ Tienda de Zapatos!</property>
                         <child>
                           <object class="GtkTreeViewColumn">
                             <property name="resizable">True</property>
+                            <property name="title" translatable="yes">Ganancia %</property>
+                            <property name="reorderable">True</property>
+                            <property name="sort-column-id">12</property>
+                            <child>
+                              <object class="GtkCellRendererText"/>
+                              <attributes>
+                                <attribute name="text">12</attribute>
+                              </attributes>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkTreeViewColumn">
+                            <property name="resizable">True</property>
                             <property name="title" translatable="yes">Ubicacion</property>
                             <property name="clickable">True</property>
                             <property name="reorderable">True</property>
@@ -2408,6 +2422,17 @@ Tienda de Zapatos!</property>
                     <property name="expand">True</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="cantidadTrabajadores">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
               </object>
