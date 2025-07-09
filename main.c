@@ -4,14 +4,8 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <time.h>        /* para time_t */
-
-/* 1) Forward‐declaración de Factura para usarla abajo */
-typedef struct Factura Factura;
-
-/* 2) Prototipos externos de facturación */
-void     mostrar_alerta(const char *mensaje);
-int      siguiente_numero_factura(void);
-gboolean guardar_factura(Factura *factura);
+#include <sys/stat.h>  // mkdir
+#include <unistd.h>    // access
 
 /*
   DEFINICIONES DE ESTRUCTURAS
@@ -29,7 +23,7 @@ typedef struct {
     int  cantidad;
     char ubicacion[50];
     char proveedor[50];
-    int  fecha;
+    time_t  fecha_registro;
     float precio_compra;
     float precio_venta;
     int  entradas;
@@ -77,6 +71,9 @@ static Producto    inventario[MAX_PRODUCTOS];
 static Cliente     clientes[MAX_CLIENTES];
 static Trabajador  trabajadores[MAX_TRABAJADORES];
 
+static int n_inventario = 0;
+static int n_clientes = 0;
+static int n_trabajadores = 0;
 
 /* Prototipo del callback para cerrar la ventana */
 G_MODULE_EXPORT void on_main_window_destroy(GtkButton *button, gpointer user_data) {
@@ -120,14 +117,63 @@ G_MODULE_EXPORT void on_traAgregar_clicked(GtkButton *btn, gpointer user_data);
 G_MODULE_EXPORT void on_traEditar_clicked(GtkButton *btn, gpointer user_data);
 G_MODULE_EXPORT void on_traFiltro_search_changed(GtkButton *btn, gpointer user_data);
 
+// Facturas
+void     mostrar_alerta(const char *mensaje);
+int      siguiente_numero_factura(void);
+gboolean guardar_factura(Factura *factura);
 
 
 
 
 
+// FUNCION PARA GUARDAR
+// save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
+void save_bin(const char *nombre_de_archivo,
+              const void *array,
+              size_t elem_size,
+              size_t count)
+{
+    FILE *f = fopen(g_strconcat("data/", nombre_de_archivo, NULL), "wb");
+    if (!f) {
+        perror("Error al guardar");
+        return;
+    }
+    fwrite(&count, sizeof(count), 1, f);
+    fwrite(array, elem_size, count, f);
+    fclose(f);
+}
 
 
+// FUNCION PARA CARGAR
+// load_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
+size_t load_bin(const char *nombre_de_archivo,
+                void *array,
+                size_t elem_size,
+                size_t max_count)
+{
+    FILE *f = fopen(g_strconcat("data/", nombre_de_archivo, NULL), "rb");
+    if (!f) return 0;
 
+    size_t count;
+    fread(&count, sizeof(count), 1, f);
+    if (count > max_count) count = max_count;
+    fread(array, elem_size, count, f);
+    fclose(f);
+    return count;
+}
+
+void crear_directorio(const char *ruta) {
+    if (access(ruta, F_OK) == -1) {
+        mkdir(ruta);
+    }
+}
+
+void cargar_todo(){
+	crear_directorio("data/");
+	n_inventario = load_bin("inventario.bin", inventario, sizeof(Producto), MAX_PRODUCTOS);
+	n_clientes = load_bin("clientes.bin", clientes, sizeof(Cliente), MAX_CLIENTES);
+	n_trabajadores = load_bin("trabajadores.bin", trabajadores, sizeof(Trabajador), MAX_TRABAJADORES);
+}
 
 
 
@@ -227,12 +273,6 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
 /*
 FUNCIONES DEL INVENTARIO
 */
-
-#define MAX_PRODUCTOS 100
-
-// Inventario en memoria
-static Producto inventario[MAX_PRODUCTOS] = {};
-static int n_inventario = 0;
 
 enum {
     COL_CODIGO,
@@ -384,6 +424,7 @@ G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
 
     /* Refrescar la vista */
     refresh_inventario(NULL);
+    save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
 }
 
 G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
@@ -442,12 +483,14 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
         p->stock_minimo = atoi(min);
         p->precio_compra = atof(compra);
         p->precio_venta = atof(venta);
-
+		
+		p->fecha_registro = time(NULL);
 		p->entradas = atoi(cant);
 		p->salidas = 0;
 
         /* Refrescar la vista */
         refresh_inventario(NULL);
+    	save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
 }
@@ -515,6 +558,7 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
 
         /* Refrescar la vista */
         refresh_inventario(NULL);
+    	save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
 }
@@ -535,18 +579,9 @@ G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_d
 
 
 
-
-
-
 /*
 FUNCIONES DE CLIENTES
 */
-
-#define MAX_CLIENTES 100
-
-// Inventario en memoria
-static Cliente clientes[MAX_CLIENTES] = {};
-static int n_clientes = 0;
 
 enum {
     COL_CEDULA,
@@ -593,7 +628,6 @@ void init_clientes()
             -1
         );
     }
-
 }
 
 void refresh_clientes(const char *filtro) {
@@ -668,6 +702,7 @@ G_MODULE_EXPORT void on_cliEliminar_clicked(GtkButton *btn, gpointer user_data)
 
     /* Refrescar la vista */
     refresh_clientes(NULL);
+    save_bin("clientes.bin", clientes, sizeof(Cliente), n_clientes);
 }
 
 G_MODULE_EXPORT void on_cliAgregar_clicked(GtkButton *btn, gpointer user_data)
@@ -708,6 +743,7 @@ G_MODULE_EXPORT void on_cliAgregar_clicked(GtkButton *btn, gpointer user_data)
 
         /* Refrescar la vista */
         refresh_clientes(NULL);
+    	save_bin("clientes.bin", clientes, sizeof(Cliente), n_clientes);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
 }
@@ -752,6 +788,7 @@ G_MODULE_EXPORT void on_cliEditar_clicked(GtkButton *btn, gpointer user_data)
 
         /* Refrescar la vista */
         refresh_clientes(NULL);
+    	save_bin("clientes.bin", clientes, sizeof(Cliente), n_clientes);
     }
  
     gtk_widget_hide(GTK_WIDGET(dialog));
@@ -781,12 +818,6 @@ G_MODULE_EXPORT void on_cliFiltro_search_changed(GtkButton *btn, gpointer user_d
 /*
 FUNCIONES DE TRABAJADORES
 */
-
-#define MAX_TRABAJADORES 100
-
-// Inventario en memoria
-static Trabajador trabajadores[MAX_TRABAJADORES] = {};
-static int n_trabajadores = 0;
 
 enum {
     COL_TCEDULA,
@@ -908,6 +939,7 @@ G_MODULE_EXPORT void on_traEliminar_clicked(GtkButton *btn, gpointer user_data)
 
     /* Refrescar la vista */
     refresh_trabajadores(NULL);
+    save_bin("trabajadores.bin", trabajadores, sizeof(Trabajador), n_trabajadores);
 }
 
 G_MODULE_EXPORT void on_traAgregar_clicked(GtkButton *btn, gpointer user_data)
@@ -948,6 +980,7 @@ G_MODULE_EXPORT void on_traAgregar_clicked(GtkButton *btn, gpointer user_data)
 
         /* Refrescar la vista */
         refresh_trabajadores(NULL);
+    	save_bin("trabajadores.bin", trabajadores, sizeof(Trabajador), n_trabajadores);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
 }
@@ -992,6 +1025,7 @@ G_MODULE_EXPORT void on_traEditar_clicked(GtkButton *btn, gpointer user_data)
 
         /* Refrescar la vista */
         refresh_trabajadores(NULL);
+    	save_bin("trabajadores.bin", trabajadores, sizeof(Trabajador), n_trabajadores);
     }
  
     gtk_widget_hide(GTK_WIDGET(dialog));
@@ -1388,6 +1422,9 @@ int main(int argc, char *argv[]) {
 
     /* Conectar señales definidas en Glade con nuestros callbacks */
     gtk_builder_connect_signals(builder, NULL);
+    
+    
+    cargar_todo();
     init_inventario("tree_inventario");
     init_clientes();
     init_trabajadores();
