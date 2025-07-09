@@ -1292,6 +1292,7 @@ G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data) 
     struct Factura f; //factura vacia
     factura_actual = f;
     
+    save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     refresh_factura();
     refresh_inventario(NULL);
 }
