@@ -20,6 +20,7 @@ typedef struct {
     char nombre[50];
     char descripcion[200];
     char categoria[50];
+    char estado[50];
     int  cantidad;
     char ubicacion[50];
     char proveedor[50];
@@ -367,6 +368,7 @@ enum {
     COL_ENTRADAS,
     COL_SALIDAS,
     COL_GANANCIA,
+    COL_ESTADO,
     N_COLUMNS
 };
 
@@ -389,7 +391,8 @@ void init_inventario(char *nombre_inv)
 	    G_TYPE_STRING,  /* proveedor */
 	    G_TYPE_INT,     /* entradas */
 	    G_TYPE_INT,     /* salidas */
-	    G_TYPE_FLOAT    /* ganancia */
+	    G_TYPE_FLOAT,   /* ganancia */
+	    G_TYPE_STRING   /* estado */
 	);
 	
 	GtkTreeView *tree = GTK_TREE_VIEW(
@@ -419,6 +422,7 @@ void init_inventario(char *nombre_inv)
             10, inventario[i].entradas,
             11, inventario[i].salidas,
             12, ((inventario[i].precio_venta - inventario[i].precio_compra) / inventario[i].precio_compra) * 100,
+            13, inventario[i].estado,
             -1
         );
     }
@@ -467,6 +471,7 @@ void refresh_inventario(const char *filtro, gpointer user_data) {
             10,inventario[i].entradas,
             11,inventario[i].salidas,
             12,((inventario[i].precio_venta - inventario[i].precio_compra) / inventario[i].precio_compra) * 100,
+            13, inventario[i].estado,
             -1
         );
     }
@@ -526,6 +531,7 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  "");
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggEstado")),  "");
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -550,6 +556,8 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
         const char *prove = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
+        const char *est = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggEstado")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[n_inventario++];
@@ -559,6 +567,7 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
         strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
         strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
+        strncpy(p->estado,      est,  sizeof(p->estado)-1);
         
         p->cantidad = atoi(cant);
         p->stock_minimo = atoi(min);
@@ -596,6 +605,7 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggCompra")),  g_strdup_printf("%f", inventario[idx].precio_compra));
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")),  inventario[idx].ubicacion);
     gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")),  inventario[idx].proveedor);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "aggEstado")),  inventario[idx].estado);
     
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK && n_inventario < MAX_PRODUCTOS) {
@@ -620,6 +630,8 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
             GTK_ENTRY(gtk_builder_get_object(builder, "aggUbicacion")));
         const char *prove = gtk_entry_get_text(
             GTK_ENTRY(gtk_builder_get_object(builder, "aggProveedor")));
+        const char *est = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "aggEstado")));
 
         /* Añadir al arreglo */
         Producto *p = &inventario[idx];
@@ -629,6 +641,7 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->categoria,   cat,  sizeof(p->categoria)-1);
         strncpy(p->ubicacion,   ubi,  sizeof(p->ubicacion)-1);
         strncpy(p->proveedor, prove,  sizeof(p->proveedor)-1);
+        strncpy(p->estado,      est,  sizeof(p->estado)-1);
         
 		p->entradas += atoi(cant) - p->cantidad;
         
