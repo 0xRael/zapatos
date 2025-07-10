@@ -98,8 +98,8 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
 
 // Inventario
 void init_inventario(char *nombre_inv);
-void refresh_inventario(const char *filtro);
-int obtener_seleccion();
+void refresh_inventario(const char *filtro, gpointer user_data);
+int obtener_seleccion(gpointer user_data);
 G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data);
 G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data);
 G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data);
@@ -274,6 +274,8 @@ G_MODULE_EXPORT void on_btnInventario_clicked(GtkButton *button, gpointer user_d
         gtk_builder_get_object(builder, "page_inventario") 
     );
 
+	refresh_inventario(NULL, gtk_builder_get_object(builder, "tree_inventario"));
+
     // Muestra esa página
     gtk_stack_set_visible_child(stack, page);
 }
@@ -319,8 +321,10 @@ G_MODULE_EXPORT void on_btnProductos_clicked(GtkButton *button, gpointer user_da
     GtkStack *stack = GTK_STACK(user_data);
     // Recupera el widget hijo por su ID de Glade
     GtkWidget *page = GTK_WIDGET(
-        gtk_builder_get_object(builder, "page_prueba")
+        gtk_builder_get_object(builder, "page_productos")
     );
+
+	refresh_inventario(NULL, gtk_builder_get_object(builder, "tree_productos"));
 
     // Muestra esa página
     gtk_stack_set_visible_child(stack, page);
@@ -421,9 +425,8 @@ void init_inventario(char *nombre_inv)
 
 }
 
-void refresh_inventario(const char *filtro) {
-    GtkTreeView  *tree  = GTK_TREE_VIEW(
-        gtk_builder_get_object(builder, "tree_inventario"));
+void refresh_inventario(const char *filtro, gpointer user_data) {
+    GtkTreeView  *tree  = GTK_TREE_VIEW(user_data);
     GtkListStore *store = GTK_LIST_STORE(
         gtk_tree_view_get_model(tree));
     GtkTreeIter   iter;
@@ -469,10 +472,9 @@ void refresh_inventario(const char *filtro) {
     }
 }
 
-int obtener_seleccion()
+int obtener_seleccion(gpointer user_data)
 {
-	GtkTreeView      *tree    = GTK_TREE_VIEW(
-        gtk_builder_get_object(builder, "tree_inventario"));
+	GtkTreeView      *tree    = GTK_TREE_VIEW(user_data);
     GtkTreeSelection *sel     = gtk_tree_view_get_selection(tree);
     GtkTreeIter       iter;
     GtkTreeModel     *model;
@@ -492,7 +494,7 @@ int obtener_seleccion()
 
 G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
 {
-    int idx = obtener_seleccion();
+    int idx = obtener_seleccion(user_data);
     if (idx < 0) return;
 
     /* Mover a la izquierda el arreglo */
@@ -502,7 +504,7 @@ G_MODULE_EXPORT void on_invEliminar_clicked(GtkButton *btn, gpointer user_data)
     n_inventario--;
 
     /* Refrescar la vista */
-    refresh_inventario(NULL);
+    refresh_inventario(NULL, user_data);
     save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
 }
 
@@ -568,7 +570,7 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
 		p->salidas = 0;
 
         /* Refrescar la vista */
-        refresh_inventario(NULL);
+        refresh_inventario(NULL, user_data);
     	save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
@@ -576,7 +578,7 @@ G_MODULE_EXPORT void on_invAgregar_clicked(GtkButton *btn, gpointer user_data)
 
 G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
 {
-    int idx = obtener_seleccion();
+    int idx = obtener_seleccion(user_data);
     if (idx < 0) return;
     
     GtkDialog    *dialog  = GTK_DIALOG(
@@ -636,7 +638,7 @@ G_MODULE_EXPORT void on_invEditar_clicked(GtkButton *btn, gpointer user_data)
         p->precio_venta = atof(venta);
 
         /* Refrescar la vista */
-        refresh_inventario(NULL);
+        refresh_inventario(NULL, user_data);
     	save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     }
     gtk_widget_hide(GTK_WIDGET(dialog));
@@ -649,7 +651,7 @@ G_MODULE_EXPORT void on_invFiltro_search_changed(GtkButton *btn, gpointer user_d
         gtk_builder_get_object(builder, "invFiltro")));
 
     /* Simplemente repuebla usando el texto como filtro */
-    refresh_inventario(texto);
+    refresh_inventario(texto, user_data);
 }
 
 
@@ -1203,7 +1205,7 @@ void refresh_factura() {
         
 G_MODULE_EXPORT void on_invCompra_clicked(GtkButton *btn, gpointer user_data)
 {
-	int idx = obtener_seleccion();
+	int idx = obtener_seleccion(user_data);
 	if(idx < 0) return;
 	
 	factura_actual.productos[factura_actual.n_productos] = inventario[idx];
@@ -1375,7 +1377,6 @@ G_MODULE_EXPORT void on_btnFacturar_clicked(GtkButton *btn, gpointer user_data) 
     
     save_bin("inventario.bin", inventario, sizeof(Producto), n_inventario);
     refresh_factura();
-    refresh_inventario(NULL);
 }
 
 
@@ -1508,6 +1509,7 @@ int main(int argc, char *argv[]) {
     
     cargar_todo();
     init_inventario("tree_inventario");
+    init_inventario("tree_productos");
     init_clientes();
     init_trabajadores();
 
