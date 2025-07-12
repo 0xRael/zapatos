@@ -9,24 +9,24 @@ Una aplicacion de escritorio para manejar el inventario, productos, clientes, fa
 - GTK 3 (o GTK 4)  
 - Glade UI Designer  
 - GCC con pkg-config  
-- Librerías estándar de C (`string.h`, `stdlib.h`)  
+- Librerï¿½as estï¿½ndar de C (`string.h`, `stdlib.h`)  
 
 ---
 
-## Instalación
+## Instalaciï¿½n
 
 1. Clona el repositorio  
    ```bash
    git clone https://github.com/0xRael/zapateria.git
    cd zapateria
    ```  
-
-2. Compila la aplicación  
+c:/Users/user/OneDrive/Documentos/GitHub/zapatos
+2. Compila la aplicaciï¿½n  
    ```bash
    gcc  main.c -o main `pkg-config --cflags --libs gtk+-3.0`
    ```  
 
-3. Asegúrate de tener el archivo `interfaz.glade` en el mismo directorio que el ejecutable.
+3. Asegï¿½rate de tener el archivo `interfaz.glade` en el mismo directorio que el ejecutable.
 
 ---
 
@@ -40,12 +40,12 @@ Una aplicacion de escritorio para manejar el inventario, productos, clientes, fa
 
 ## Uso
 
-1. Ejecuta la aplicación  
+1. Ejecuta la aplicaciï¿½n  
    ```bash
    ./main
    ```  
 
-2. Navega por el menú lateral para acceder a:  
+2. Navega por el menï¿½ lateral para acceder a:  
    - Inventario  
    - Productos  
    - Clientes  
@@ -62,25 +62,25 @@ Una aplicacion de escritorio para manejar el inventario, productos, clientes, fa
 
 ---
 
-## Diseño de la interfaz
+## Diseï¿½o de la interfaz
 
 - **GtkApplicationWindow** con HeaderBar personalizado  
-- Panel de navegación vertical con `GtkButton` + icono  
-- Área de contenido con `GtkStack` para cada sección  
+- Panel de navegaciï¿½n vertical con `GtkButton` + icono  
+- ï¿½rea de contenido con `GtkStack` para cada secciï¿½n  
 - `GtkTreeView` + `GtkListStore` en Inventario y Facturas  
 - `GtkFlowBox` para listar productos en miniaturas  
 - Formularios en `GtkGrid` para Clientes y Trabajadores  
-- Diálogos diseñados en Glade para Agregar y Editar  
+- Diï¿½logos diseï¿½ados en Glade para Agregar y Editar  
 
 ---
 
 ## Funcionalidades destacadas
 
 - Carga y refresco de datos desde un arreglo de structs  
-- Filtros en tiempo real por código o nombre  
-- Ordenamiento y selección de filas en tablas  
-- Edición directa mediante diálogos modal en Glade  
-- Eliminación sincronizada entre `ListStore` y arreglo en memoria  
+- Filtros en tiempo real por cï¿½digo o nombre  
+- Ordenamiento y selecciï¿½n de filas en tablas  
+- Ediciï¿½n directa mediante diï¿½logos modal en Glade  
+- Eliminaciï¿½n sincronizada entre `ListStore` y arreglo en memoria  
 
 ---
 
@@ -89,5 +89,5 @@ Una aplicacion de escritorio para manejar el inventario, productos, clientes, fa
 - Persistencia en archivo JSON o base de datos SQLite  
 - Exportar facturas a CSV o PDF  
 - Modo oscuro con CSS personalizado  
-- Reportes de stock mínimo y alertas visuales  
-- Integración con API de proveedores para actualización automática  
+- Reportes de stock mï¿½nimo y alertas visuales  
+- Integraciï¿½n con API de proveedores para actualizaciï¿½n automï¿½tica  
