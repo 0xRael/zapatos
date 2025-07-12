@@ -1,4 +1,5 @@
-﻿#include <string.h>
+﻿#include <stdio.h>
+#include <string.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <gtk/gtk.h>
@@ -46,6 +47,7 @@ typedef struct {
     char apellido[50];
     char telefono[50];
     char direccion[200];
+    char numeroEmpleado[50];
 } Trabajador;
 
 /* 3) Única definición de Factura */
@@ -914,6 +916,7 @@ FUNCIONES DE TRABAJADORES
 */
 
 enum {
+    COL_TNUMTRABAJADOR,
     COL_TCEDULA,
     COL_TNOMBRE,
     COL_TAPELLIDO,
@@ -936,6 +939,7 @@ void init_trabajadores()
     /* 1. Obtener TreeView y modelo */
     GtkListStore *store = gtk_list_store_new(
 	    N_COLUMNS_TRA,
+        G_TYPE_STRING,  /*numeroTrabajador*/
 	    G_TYPE_STRING,  /* cedula */
 	    G_TYPE_STRING,  /* nombre */
 	    G_TYPE_STRING,  /* apellido */
@@ -957,11 +961,12 @@ void init_trabajadores()
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(
             store, &iter,
-            0,  trabajadores[i].cedula,
-            1,  trabajadores[i].nombre,
-            2,  trabajadores[i].apellido,
-            3,  trabajadores[i].telefono,
-            4,  trabajadores[i].direccion,
+            0,  trabajadores[i].numeroEmpleado,
+            1,  trabajadores[i].cedula,
+            2,  trabajadores[i].nombre,
+            3,  trabajadores[i].apellido,
+            4,  trabajadores[i].telefono,
+            5,  trabajadores[i].direccion,
             -1
         );
     }
@@ -997,11 +1002,12 @@ void refresh_trabajadores(const char *filtro) {
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(
             store, &iter,
-            0,  trabajadores[i].cedula,
-            1,  trabajadores[i].nombre,
-            2,  trabajadores[i].apellido,
-            3,  trabajadores[i].telefono,
-            4,  trabajadores[i].direccion,
+            0,  trabajadores[i].numeroEmpleado,
+            1,  trabajadores[i].cedula,
+            2,  trabajadores[i].nombre,
+            3,  trabajadores[i].apellido,
+            4,  trabajadores[i].telefono,
+            5,  trabajadores[i].direccion,
             -1
         );
     }
@@ -1048,30 +1054,32 @@ G_MODULE_EXPORT void on_traEliminar_clicked(GtkButton *btn, gpointer user_data)
 G_MODULE_EXPORT void on_traAgregar_clicked(GtkButton *btn, gpointer user_data)
 {
     GtkDialog    *dialog  = GTK_DIALOG(
-        gtk_builder_get_object(builder, "dialog_cli_agregar")
+        gtk_builder_get_object(builder, "dialog_trab_agregar")
     );
     
-    // vaciar los espacios previamente
+    // vaciar los espacios previamente  numTrabajador
     
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  "");
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  "");
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  "");
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  "");
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  "");
-    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traCedula")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traNombre")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traApellido")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traTelefono")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traDireccion")),  "");
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "numTrabajador")),  "");
     gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK) {
         /* Leer campos */
         const char *ci  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traCedula")));
         const char *nom  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traNombre")));
         const char *apel  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traApellido")));
         const char *tel  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traTelefono")));
         const char *dir = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traDireccion")));
+        const char *ntbj = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "numTrabajador")));
 
         /* Añadir al arreglo */
        	Trabajador *p = &trabajadores[n_trabajadores++];
@@ -1080,6 +1088,7 @@ G_MODULE_EXPORT void on_traAgregar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->apellido,   apel,  sizeof(p->apellido)-1);
         strncpy(p->telefono,    tel,  sizeof(p->telefono)-1);
         strncpy(p->direccion,   dir,  sizeof(p->direccion)-1);
+        strncpy(p->numeroEmpleado,   ntbj,  sizeof(p->numeroEmpleado)-1);
 
         /* Refrescar la vista */
         refresh_trabajadores(NULL);
@@ -1094,30 +1103,32 @@ G_MODULE_EXPORT void on_traEditar_clicked(GtkButton *btn, gpointer user_data)
     if (idx < 0) return;
     
     GtkDialog    *dialog  = GTK_DIALOG(
-        gtk_builder_get_object(builder, "dialog_cli_agregar")
+        gtk_builder_get_object(builder, "dialog_trab_agregar")
     );
     // vaciar los espacios previamente
     
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")),  trabajadores[idx].cedula);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")),  trabajadores[idx].nombre);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")),  trabajadores[idx].apellido);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")),  trabajadores[idx].telefono);
-    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")),  trabajadores[idx].direccion);
-    
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traCedula")),  trabajadores[idx].cedula);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traNombre")),  trabajadores[idx].nombre);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traApellido")),  trabajadores[idx].apellido);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traTelefono")),  trabajadores[idx].telefono);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "traDireccion")),  trabajadores[idx].direccion);
+    gtk_entry_set_text(GTK_ENTRY(gtk_builder_get_object(builder, "numTrabajador")),  trabajadores[idx].numeroEmpleado);
+
        gint resp = gtk_dialog_run(dialog);
     if (resp == GTK_RESPONSE_OK) {
         /* Leer campos */
         const char *ci  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliCedula")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traCedula")));
         const char *nom  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliNombre")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traNombre")));
         const char *apel  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliApellido")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traApellido")));
         const char *tel  = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliTelefono")));
+            GTK_ENTRY(gtk_builder_get_object(builder, "traTelefono")));
         const char *dir = gtk_entry_get_text(
-            GTK_ENTRY(gtk_builder_get_object(builder, "cliDireccion")));
-
+            GTK_ENTRY(gtk_builder_get_object(builder, "traDireccion")));
+        const char *ntbj = gtk_entry_get_text(
+            GTK_ENTRY(gtk_builder_get_object(builder, "numTrabajador")));
         /* Añadir al arreglo */
         Trabajador *p = &trabajadores[idx];
         strncpy(p->cedula,      ci,  sizeof(p->cedula)-1);
@@ -1125,6 +1136,7 @@ G_MODULE_EXPORT void on_traEditar_clicked(GtkButton *btn, gpointer user_data)
         strncpy(p->apellido,   apel,  sizeof(p->apellido)-1);
         strncpy(p->telefono,    tel,  sizeof(p->telefono)-1);
         strncpy(p->direccion,   dir,  sizeof(p->direccion)-1);
+        strncpy(p->numeroEmpleado,   ntbj,  sizeof(p->numeroEmpleado)-1);
 
         /* Refrescar la vista */
         refresh_trabajadores(NULL);

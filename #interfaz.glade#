@@ -2810,7 +2810,7 @@ Tienda de Zapatos!</property>
                         <child>
                           <object class="GtkTreeViewColumn">
                             <property name="resizable">True</property>
-                            <property name="title" translatable="yes">Télefono</property>
+                            <property name="title" translatable="yes">Teléfono</property>
                             <property name="clickable">True</property>
                             <property name="reorderable">True</property>
                             <property name="sort-column-id">4</property>
